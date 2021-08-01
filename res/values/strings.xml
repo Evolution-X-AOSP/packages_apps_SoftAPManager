@@ -11,4 +11,7 @@
     <string name="title_manufacturer">Manufacturer</string>
     <string name="title_blocked">Blocked</string>
 
+    <!-- Footer  -->
+    <string name="footer_text">No clients are currently available. Connected and blocked clients will be listed here when avaialable.</string>
+
 </resources>

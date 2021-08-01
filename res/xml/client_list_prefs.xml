@@ -8,4 +8,9 @@
     <PreferenceCategory
         android:title="@string/title_blocked_clients"
         android:key="blocked_clients" />
+
+    <com.android.settingslib.widget.FooterPreference
+        android:key="footer"
+        android:title="@string/footer_text"
+        android:selectable="false" />
 </PreferenceScreen>
