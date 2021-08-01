@@ -9,7 +9,13 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.UserHandle;
 import android.text.TextUtils;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.CompoundButton;
+import android.widget.Switch;
+import android.widget.TextView;
 
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
@@ -128,14 +134,18 @@ public class ClientInfoActivity extends FragmentActivity implements SoftApManage
     }
 
 
-    public static class ClientInfoFragment extends PreferenceFragmentCompat implements Preference.OnPreferenceChangeListener {
+    public static class ClientInfoFragment extends PreferenceFragmentCompat implements
+            CompoundButton.OnCheckedChangeListener {
 
         private IClientManager mClientManager;
         private Preference prefName;
         private Preference prefMAC;
         private Preference prefIP;
         private Preference prefManufacturer;
-        private SwitchPreference prefBlocked;
+        private boolean mAllowed = true;
+
+        private TextView mTextView;
+        private View mSwitchBar;
 
         @Override
         public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -144,12 +154,52 @@ public class ClientInfoActivity extends FragmentActivity implements SoftApManage
             prefIP = findPreference("ip_address");
             prefMAC = findPreference("mac_address");
             prefManufacturer = findPreference("manufacturer");
-            prefBlocked = findPreference("blocked");
-            prefBlocked.setOnPreferenceChangeListener(this);
+        }
+
+        @Override
+        public View onCreateView(LayoutInflater inflater,
+                ViewGroup container, Bundle savedInstanceState) {
+            final View view = LayoutInflater.from(getContext()).inflate(R.layout.master_setting_switch, container, false);
+            ((ViewGroup) view).addView(super.onCreateView(inflater, container, savedInstanceState));
+            return view;
+        }
+
+        @Override
+        public void onViewCreated(View view, Bundle savedInstanceState) {
+            super.onViewCreated(view, savedInstanceState);
+
+            mTextView = view.findViewById(R.id.switch_text);
+            mTextView.setText(getString(mAllowed ?
+                    R.string.switch_on_text : R.string.switch_off_text));
+
+            mSwitchBar = view.findViewById(R.id.switch_bar);
+            Switch switchWidget = mSwitchBar.findViewById(android.R.id.switch_widget);
+            switchWidget.setChecked(mAllowed);
+            switchWidget.setOnCheckedChangeListener(this);
+            mSwitchBar.setActivated(mAllowed);
+            mSwitchBar.setOnClickListener(v -> {
+                switchWidget.setChecked(!switchWidget.isChecked());
+                mSwitchBar.setActivated(switchWidget.isChecked());
+            });
+        }
+
+        @Override
+        public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
+            if (mClientManager != null) {
+                mClientManager.block(!isChecked);
+            }
+            mTextView.setText(getString(isChecked ? R.string.switch_on_text : R.string.switch_off_text));
+            mSwitchBar.setActivated(isChecked);
         }
 
         public void setClientManager(IClientManager manager) {
             mClientManager = manager;
+        }
+
+        private void refreshSwitch() {
+            Switch switchWidget = mSwitchBar.findViewById(android.R.id.switch_widget);
+            switchWidget.setChecked(mAllowed);
+            mSwitchBar.setActivated(mAllowed);
         }
 
         public void updateClientInfo(ClientInfo info) {
@@ -158,18 +208,8 @@ public class ClientInfoActivity extends FragmentActivity implements SoftApManage
             prefMAC.setSummary(info.getMACAddress());
             prefIP.setSummary(String.join("\n", info.getIPAddressArray()));
             prefManufacturer.setSummary(info.getManufacturer());
-            prefBlocked.setChecked(info.isBlocked());
-        }
-
-        @Override
-        public boolean onPreferenceChange(Preference preference, Object newValue) {
-            if (preference == prefBlocked) {
-                Boolean val = (Boolean) newValue;
-                if (mClientManager != null) {
-                    return mClientManager.block(val);
-                }
-            }
-            return false;
+            mAllowed = !info.isBlocked();
+            refreshSwitch();
         }
     }
 
